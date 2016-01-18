@@ -9,7 +9,7 @@ def ensure_access_token(f):
     def g(self, *args, **kwargs):
         if not self.access_token:
             raise PinterestException(
-                "You need an access token to make that call")
+                    "You need an access token to make that call")
         return f(self, *args, **kwargs)
 
     return g
@@ -40,10 +40,10 @@ class PinterestOAuth(object):
 
     def auth(self, code):
         params = dict(
-            grant_type="authorization_code",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            code=code,
+                grant_type="authorization_code",
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                code=code,
         )
 
         url = "%s%s%s" % (
@@ -56,10 +56,10 @@ class PinterestOAuth(object):
 
     def get_access_token(self, redirect_uri):
         params = dict(
-            response_type="code",
-            redirect_uri=redirect_uri,
-            client_id=self.client_id,
-            scope=",".join(self.scope)
+                response_type="code",
+                redirect_uri=redirect_uri,
+                client_id=self.client_id,
+                scope=",".join(self.scope)
         )
 
         return "%s%s%s" % (
@@ -74,11 +74,12 @@ class PinterestAPI(object):
     authorize_url = "%s/oauth/authorize" % base_url
     access_token_url = "%s/oauth/access_token" % base_url
     headers = {
-        "Accept-Language": "en",
-        "Accept-Encoding": "gzip",
-        "Host": base_url.replace("https://", ""),
-        "User-Agent": "Pinterest for Android/1.0.2 (generic_x86; 4.0.4)",
-        "X-Pixel-Ratio": "1.5",
+        # "Accept-Language": "en",
+        # "Accept-Encoding": "gzip",
+        # "Host": base_url.replace("https://", ""),
+        # "User-Agent": "Pinterest for Android/1.0.2 (generic_x86; 4.0.4)",
+        # "X-Pixel-Ratio": "1.5",
+        "Content-Type": "application/x-www-form-urlencoded"
     }
 
     def __init__(self, access_token=None):
@@ -96,13 +97,16 @@ class PinterestAPI(object):
 
         return json.loads(response.text)
 
-    def _post_request(self, path, params={}, data={}):
-        url = "%s%s" % (self.base_url, path)
+    @ensure_access_token
+    def _post_request(self, path, data, params={}):
+        params["access_token"] = self.access_token
+        url = "%s%s?%s" % (self.base_url, path, urlencode(params))
         try:
-            return requests.post(url, params=params, data=data,
-                                 headers=self.headers)
+            response = requests.post(url, data=data, headers = self.headers)
         except exceptions.RequestException as e:
             raise PinterestException(e)
+
+        return response.json()
 
     def me(self):
         """Retrieve the currently authenticated user."""
@@ -118,6 +122,26 @@ class PinterestAPI(object):
         """Retrieve information about the specified user's board."""
         path = "/v1/boards/%s" % board
         return self._get_request(path)
+
+    def pins(self, board, note, image=None, link=None, image_url=None,
+             image_base64=None):
+        path = "/v1/pins/"
+        data = {
+            "board": board,
+            "note": note,
+        }
+
+        if image:
+            data.update({"image": image})
+
+        if image_url:
+            data.update({"image_url": image_url})
+
+        if image_base64:
+            data.update({"image_base64": image_base64})
+
+        resp = self._post_request(path, data)
+        return resp
 
 
 class PinterestException(Exception):
