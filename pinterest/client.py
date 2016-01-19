@@ -102,20 +102,24 @@ class PinterestAPI(object):
         params["access_token"] = self.access_token
         url = "%s%s?%s" % (self.base_url, path, urlencode(params))
         try:
-            response = requests.post(url, data=data, headers = self.headers)
+            response = requests.post(url, data=data, headers=self.headers)
         except exceptions.RequestException as e:
             raise PinterestException(e)
 
         return response.json()
 
-    def me(self):
-        """Retrieve the currently authenticated user."""
+    def me(self, fields=None):
+        """Description: Return the logged in user's information"""
         path = "/v1/me"
+        if fields:
+            path = "%s/?%s" % (path, urlencode({"fields": ",".join(fields)}))
         return self._get_request(path)
 
-    def boards(self):
+    def boards(self, fields=None):
         """Retrieve all the boards for the currently authenticated user."""
         path = "/v1/me/boards/"
+        if fields:
+            path = "%s/?%s" % (path, urlencode({"fields": ",".join(fields)}))
         return self._get_request(path)
 
     def board(self, board):
@@ -142,6 +146,12 @@ class PinterestAPI(object):
 
         resp = self._post_request(path, data)
         return resp
+
+    def pin(self, pin, fields=None):
+        path = "/v1/pins/%s" % pin
+        if fields:
+            path = "%s/?%s" % (path, urlencode({"fields": ",".join(fields)}))
+        return self._get_request(path)
 
 
 class PinterestException(Exception):
